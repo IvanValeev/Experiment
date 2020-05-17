@@ -5,6 +5,7 @@ import key_token
 from trello import TrelloClient
 from trello.lists import Lists
 from trello.cards import Cards
+from trello.boards import Boards
 
 
 
@@ -66,6 +67,20 @@ def my_get_label(key,token, card_id):
 
     return labels
 
+def my_get_members(key, token, board_id):
+    """
+    Return dictionary of board member's ({'username':'id'})
+    """
+
+    members = {}
+
+    client = Boards(key, token)
+    list_of_members = client.get_member(board_id)
+
+    for member in list_of_members:
+        members[member['username']] = member['id']
+
+    return members
 
 def create_new_board(key,token, name_of_board):
     client = TrelloClient(key, token)
