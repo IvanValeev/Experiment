@@ -99,6 +99,36 @@ def add_label_to_card(key, token, card_id, color):
     client = Cards(key, token)
     client.new_label(card_id, color)
 
+def is_legend_absent(board_id, key, token):
+
+    """
+    This method checks if there is a legend column in the table; if it is absent, it creates it with a list of board members.
+    """
+
+    members = my_get_members(key, token, board_id)
+    lists = my_get_lists(board_id, key, token)
+
+    if 'Legend' not in my_get_lists(board_id, key, token):
+
+        add_list_to_board(key,token, board_id, 'Legend')
+        
+        for member in members.keys():
+            add_card_to_list(key, token, lists['Legend'], member)
+    
+    elif 'Legend' in my_get_lists(board_id, key, token) and my_get_cards(lists['Legend'], key, token).keys() != my_get_members(key, token, board_id).keys():
+
+        id = my_get_lists(board_id, key, token)['Legend']
+        params_key_and_token = {'key':key,'token':token}
+        url = f"https://api.trello.com/1/lists/{id}/archiveAllCards"
+
+        response = requests.request(
+        "POST",
+        url,
+        params = params_key_and_token
+        )
+
+        for member in members.keys():
+            add_card_to_list(key, token, lists['Legend'], member)
 
 
 class Test(unittest.TestCase):
