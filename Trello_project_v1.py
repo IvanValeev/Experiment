@@ -126,6 +126,23 @@ def is_legend_absent(board_id, key, token):
         for member in members.keys():
             add_card_to_list(key, token, my_get_lists(board_id, key, token)['Legend'], member)
 
+def unique_legend_labels(key, token, board_id):
+    """
+    Adds unique labels for all cards in Legend
+    """
+    colors = ['green', 'orange', 'purple', 'blue', 'lime', 'pink', 'sky', 'black']
+    legend_id = my_get_lists(board_id, key, token)['Legend']
+    members = my_get_cards(legend_id, key, token)
+    members_names = list(members.keys())
+
+    for i in range(len(members_names)):
+        if i < len(colors):
+            j = i
+            add_label_to_card(key, token, members[members_names[i]], colors[j], name=members_names[i])
+        elif i >= len(colors):
+            j = i - len(colors)
+            add_label_to_card(key, token, members[members_names[i]], colors[j], name=members_names[i])
+
 
 class Test(unittest.TestCase):
 
