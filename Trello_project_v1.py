@@ -95,9 +95,9 @@ def add_card_to_list(key, token, list_id, name_of_card):
     client = Cards(key, token)
     client.new(name_of_card, list_id)
 
-def add_label_to_card(key, token, card_id, color):
+def add_label_to_card(key, token, card_id, color, name=None):
     client = Cards(key, token)
-    client.new_label(card_id, color)
+    client.new_label(card_id, color, name)
 
 def is_legend_absent(board_id, key, token):
 
@@ -217,6 +217,30 @@ class Test(unittest.TestCase):
     def test_add_label_to_card(self):
         board_id = my_get_boards(key, token)['Testboard']
         self.assertTrue('green' in my_get_label(key,token, my_get_cards(my_get_lists(board_id, key, token)['Testlist'], key, token)['Testcard']).keys())
+
+    def test_is_legend_absent(self):
+        is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
+        self.assertTrue('Legend' in my_get_lists(my_get_boards(key, token)['Testboard'], key, token))
+
+    def test_legend_content(self):
+        is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
+        lists_of_board = my_get_lists(my_get_boards(key, token)['Testboard'], key, token)
+        actual_result = my_get_cards(lists_of_board['Legend'], key, token).keys()
+        excepted_result = my_get_members(key, token, my_get_boards(key, token)['Testboard']).keys()
+        self.assertEqual(excepted_result, actual_result)
+
+    def test_unique_legend_labels(self):
+        is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
+        unique_legend_labels(key, token, my_get_boards(key, token)['Testboard'])
+        card_ids = my_get_cards(my_get_lists(my_get_boards(key, token)['Testboard'], key, token)['Legend'], key, token)
+        actual_result = []
+        for id in card_ids.keys():
+            id = card_ids[id]
+            url = f'https://trello.com/1/cards/{id}/labels'
+            response = connection(url, key, token)
+            actual_result.append(response.json()[0]['name'])
+        excepted_result = list(my_get_members(key, token, my_get_boards(key, token)['Testboard']).keys())
+        self.assertEqual(excepted_result, actual_result)
 
 unittest.main(verbosity=2)
 
