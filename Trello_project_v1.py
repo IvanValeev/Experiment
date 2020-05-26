@@ -6,6 +6,7 @@ from trello import TrelloClient
 from trello.lists import Lists
 from trello.cards import Cards
 from trello.boards import Boards
+from trello.board import Board
 
 
 
@@ -143,6 +144,40 @@ def unique_legend_labels(key, token, board_id):
             j = i - len(colors)
             add_label_to_card(key, token, members[members_names[i]], colors[j], name=members_names[i])
 
+def labels_according_to_legend(key, token, board_id):
+    """
+    Coloring of existed cards according to legend
+    """
+
+    client = TrelloClient(key, token)
+    board = Board(client= client, board_id=board_id)
+    list_of_lists = board.list_lists(list_filter='open')
+    creators = my_get_members(key, token, board_id)
+    legend_id =''
+    legend_labels = {}
+    list_of_cards = []
+
+    for list in range(len(list_of_lists)):
+        if list_of_lists[list].name == 'Legend':
+            legend_id = list_of_lists[list].id
+            list_of_lists.pop(list)
+            break
+
+    for card in my_get_cards(legend_id, key, token).keys():
+        for label in my_get_label(key,token, my_get_cards(legend_id, key, token)[card]):
+            legend_labels[creators[card]] = my_get_label(key,token, my_get_cards(legend_id, key, token)[card])[label]
+
+    for i in list_of_lists:
+        for j in i.list_cards():
+            list_of_cards.append(j)
+
+    for card_id in list_of_cards:
+        id = card_id.id
+        url = f"https://api.trello.com/1/boards/{board_id}/actions"
+        params_key_and_token = {'key':key,'token':token, 'filter':'createCard','fields': 'idMemberCreator', 'idModels': id}
+        response = requests.get(url, params=params_key_and_token)
+        client = Cards(key,token)
+        client.new_idLabel(id, legend_labels[response.json()[0]['idMemberCreator']])
 
 class Test(unittest.TestCase):
 
@@ -243,7 +278,6 @@ class Test(unittest.TestCase):
         self.assertEqual(excepted_result, actual_result)
 
 unittest.main(verbosity=2)
-
 
 
 
