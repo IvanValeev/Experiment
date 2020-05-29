@@ -184,14 +184,16 @@ def labels_according_to_legend(key, token, board_id):
 
 class Test(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         create_new_board(key, token, 'Testboard')
         board_id = my_get_boards(key, token)['Testboard']
         add_list_to_board(key,token, board_id, 'Testlist')
         add_card_to_list(key, token, my_get_lists(board_id, key, token)['Testlist'], 'Testcard')
         add_label_to_card(key, token, my_get_cards(my_get_lists(board_id, key, token)['Testlist'], key, token)['Testcard'], 'green')
-
-    def tearDown(self):
+    
+    @classmethod
+    def tearDownClass(cls):
         del_id = my_get_boards(key, token)['Testboard']
         params_key_and_token = {'key':key,'token':token}
 
