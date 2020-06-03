@@ -182,6 +182,11 @@ def labels_according_to_legend(key, token, board_id):
         except:
             pass
 
+def unlim_labeling(key, token, board_id):
+    while True:
+        print('Working...')
+        labels_according_to_legend(key, token, board_id)
+
 class Test(unittest.TestCase):
 
     @classmethod
