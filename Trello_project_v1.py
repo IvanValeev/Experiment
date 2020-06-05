@@ -6,6 +6,7 @@ from trello import TrelloClient
 from trello.lists import Lists
 from trello.cards import Cards
 from trello.boards import Boards
+from trello.board import Board
 
 
 
@@ -95,27 +96,23 @@ def add_card_to_list(key, token, list_id, name_of_card):
     client = Cards(key, token)
     client.new(name_of_card, list_id)
 
-def add_label_to_card(key, token, card_id, color):
+def add_label_to_card(key, token, card_id, color, name=None):
     client = Cards(key, token)
-    client.new_label(card_id, color)
+    client.new_label(card_id, color, name)
 
 def is_legend_absent(board_id, key, token):
 
-    """
-    This method checks if there is a legend column in the table; if it is absent, it creates it with a list of board members.
-    """
-
+    '''
+    This method checks if there is a legend column in the table, if it is absent, it creates it with a list of board members.
+    '''
     members = my_get_members(key, token, board_id)
-    lists = my_get_lists(board_id, key, token)
 
     if 'Legend' not in my_get_lists(board_id, key, token):
-
         add_list_to_board(key,token, board_id, 'Legend')
-        
         for member in members.keys():
-            add_card_to_list(key, token, lists['Legend'], member)
-    
-    elif 'Legend' in my_get_lists(board_id, key, token) and my_get_cards(lists['Legend'], key, token).keys() != my_get_members(key, token, board_id).keys():
+            add_card_to_list(key, token, my_get_lists(board_id, key, token)['Legend'], member)
+ 
+    elif 'Legend' in my_get_lists(board_id, key, token) and my_get_cards(my_get_lists(board_id, key, token)['Legend'], key, token).keys() != my_get_members(key, token, board_id).keys():
 
         id = my_get_lists(board_id, key, token)['Legend']
         params_key_and_token = {'key':key,'token':token}
@@ -126,21 +123,82 @@ def is_legend_absent(board_id, key, token):
         url,
         params = params_key_and_token
         )
-
+    
         for member in members.keys():
-            add_card_to_list(key, token, lists['Legend'], member)
+            add_card_to_list(key, token, my_get_lists(board_id, key, token)['Legend'], member)
 
+def unique_legend_labels(key, token, board_id):
+    """
+    Adds unique labels for all cards in Legend
+    """
+    colors = ['green', 'orange', 'purple', 'blue', 'lime', 'pink', 'sky', 'black']
+    legend_id = my_get_lists(board_id, key, token)['Legend']
+    members = my_get_cards(legend_id, key, token)
+    members_names = list(members.keys())
+
+    for i in range(len(members_names)):
+        if i < len(colors):
+            j = i
+            add_label_to_card(key, token, members[members_names[i]], colors[j], name=members_names[i])
+        elif i >= len(colors):
+            j = i - len(colors)
+            add_label_to_card(key, token, members[members_names[i]], colors[j], name=members_names[i])
+
+def labels_according_to_legend(key, token, board_id):
+    """
+    Coloring of existed cards according to legend
+    """
+
+    client = TrelloClient(key, token)
+    board = Board(client= client, board_id=board_id)
+    list_of_lists = board.list_lists(list_filter='open')
+    creators = my_get_members(key, token, board_id)
+    legend_id =''
+    legend_labels = {}
+    list_of_cards = []
+
+    for list in range(len(list_of_lists)):
+        if list_of_lists[list].name == 'Legend':
+            legend_id = list_of_lists[list].id
+            list_of_lists.pop(list)
+            break
+
+    for card in my_get_cards(legend_id, key, token).keys():
+        for label in my_get_label(key,token, my_get_cards(legend_id, key, token)[card]):
+            legend_labels[creators[card]] = my_get_label(key,token, my_get_cards(legend_id, key, token)[card])[label]
+
+    for i in list_of_lists:
+        for j in i.list_cards():
+            list_of_cards.append(j)
+
+    for card_id in list_of_cards:
+        id = card_id.id
+        url = f"https://api.trello.com/1/cards/{id}/actions"
+        params_key_and_token = {'key':key,'token':token, 'filter':['updateCard', 'createCard']}
+        response = requests.get(url, params=params_key_and_token)
+        client = Cards(key,token)
+        try:
+            client.new_idLabel(id, legend_labels[response.json()[0]['idMemberCreator']])
+        except:
+            pass
+
+def unlim_labeling(key, token, board_id):
+    while True:
+        print('Working...')
+        labels_according_to_legend(key, token, board_id)
 
 class Test(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         create_new_board(key, token, 'Testboard')
         board_id = my_get_boards(key, token)['Testboard']
         add_list_to_board(key,token, board_id, 'Testlist')
         add_card_to_list(key, token, my_get_lists(board_id, key, token)['Testlist'], 'Testcard')
         add_label_to_card(key, token, my_get_cards(my_get_lists(board_id, key, token)['Testlist'], key, token)['Testcard'], 'green')
-
-    def tearDown(self):
+    
+    @classmethod
+    def tearDownClass(cls):
         del_id = my_get_boards(key, token)['Testboard']
         params_key_and_token = {'key':key,'token':token}
 
@@ -205,8 +263,44 @@ class Test(unittest.TestCase):
         board_id = my_get_boards(key, token)['Testboard']
         self.assertTrue('green' in my_get_label(key,token, my_get_cards(my_get_lists(board_id, key, token)['Testlist'], key, token)['Testcard']).keys())
 
-unittest.main(verbosity=2)
+    def test_is_legend_absent(self):
+        is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
+        self.assertTrue('Legend' in my_get_lists(my_get_boards(key, token)['Testboard'], key, token))
 
+    def test_legend_content(self):
+        is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
+        lists_of_board = my_get_lists(my_get_boards(key, token)['Testboard'], key, token)
+        actual_result = my_get_cards(lists_of_board['Legend'], key, token).keys()
+        excepted_result = my_get_members(key, token, my_get_boards(key, token)['Testboard']).keys()
+        self.assertEqual(excepted_result, actual_result)
+
+    def test_unique_legend_labels(self):
+        is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
+        try:
+            unique_legend_labels(key, token, my_get_boards(key, token)['Testboard'])
+        except:
+            pass
+        card_ids = my_get_cards(my_get_lists(my_get_boards(key, token)['Testboard'], key, token)['Legend'], key, token)
+        actual_result = []
+        for id in card_ids.keys():
+            id = card_ids[id]
+            url = f'https://trello.com/1/cards/{id}/labels'
+            response = connection(url, key, token)
+            actual_result.append(response.json()[0]['name'])
+        excepted_result = list(my_get_members(key, token, my_get_boards(key, token)['Testboard']).keys())
+        self.assertEqual(excepted_result, actual_result)
+
+    def test_labels_according_to_legend(self):
+        board_id = my_get_boards(key, token)['Testboard']
+        is_legend_absent(board_id, key, token)
+        unique_legend_labels(key, token, my_get_boards(key, token)['Testboard'])
+        lists = my_get_lists(board_id, key, token)
+        labels_according_to_legend(key, token, board_id)
+        legend_card = my_get_cards(lists['Legend'], key, token)
+        cards = my_get_cards(lists['Testlist'], key, token)
+        self.assertTrue(my_get_label(key,token, legend_card['ivan_valeev'])['green'] in my_get_label(key,token, cards['Testcard']).values())
+
+unittest.main(verbosity=2)
 
 
 
