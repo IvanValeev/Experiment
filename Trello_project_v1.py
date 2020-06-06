@@ -20,6 +20,7 @@ def connection(url, key, token):
 
     return requests.get(url, params=params_key_and_token, data=arguments)
 
+
 def my_get_boards(key, token):
 
     dict_of_boards_ids = {}
@@ -31,6 +32,7 @@ def my_get_boards(key, token):
         dict_of_boards_ids[board['name']] = board['id']
 
     return dict_of_boards_ids
+
 
 def my_get_lists(board_id, key, token):
 
@@ -56,6 +58,7 @@ def my_get_cards(list_id, key, token):
 
     return dict_of_cards_ids
 
+
 def my_get_label(key,token, card_id):
 
     labels = {}
@@ -67,6 +70,7 @@ def my_get_label(key,token, card_id):
         labels[label['color']] = label['id']
 
     return labels
+
 
 def my_get_members(key, token, board_id):
     """
@@ -83,20 +87,27 @@ def my_get_members(key, token, board_id):
 
     return members
 
+
 def create_new_board(key,token, name_of_board):
+
     client = TrelloClient(key, token)
     client.add_board(name_of_board)
 
 
 def add_list_to_board(key,token, board_id, name_of_list):
+
     client = Lists(key, token)
     client.new(name_of_list, board_id)
 
+
 def add_card_to_list(key, token, list_id, name_of_card):
+
     client = Cards(key, token)
     client.new(name_of_card, list_id)
 
+
 def add_label_to_card(key, token, card_id, color, name=None):
+
     client = Cards(key, token)
     client.new_label(card_id, color, name)
 
@@ -127,6 +138,7 @@ def is_legend_absent(board_id, key, token):
         for member in members.keys():
             add_card_to_list(key, token, my_get_lists(board_id, key, token)['Legend'], member)
 
+
 def unique_legend_labels(key, token, board_id):
     """
     Adds unique labels for all cards in Legend
@@ -144,6 +156,7 @@ def unique_legend_labels(key, token, board_id):
             j = i - len(colors)
             add_label_to_card(key, token, members[members_names[i]], colors[j], name=members_names[i])
 
+
 def labels_according_to_legend(key, token, board_id):
     """
     Coloring of existed cards according to legend
@@ -158,6 +171,7 @@ def labels_according_to_legend(key, token, board_id):
     list_of_cards = []
 
     for list in range(len(list_of_lists)):
+
         if list_of_lists[list].name == 'Legend':
             legend_id = list_of_lists[list].id
             list_of_lists.pop(list)
@@ -177,12 +191,14 @@ def labels_according_to_legend(key, token, board_id):
         params_key_and_token = {'key':key,'token':token, 'filter':['updateCard', 'createCard']}
         response = requests.get(url, params=params_key_and_token)
         client = Cards(key,token)
+
         try:
             client.new_idLabel(id, legend_labels[response.json()[0]['idMemberCreator']])
         except:
             pass
 
 def unlim_labeling(key, token, board_id):
+
     while True:
         print('Working...')
         labels_according_to_legend(key, token, board_id)
@@ -216,11 +232,13 @@ class Test(unittest.TestCase):
         excepted_result = 200
         self.assertEqual(excepted_result, actual_result)
 
+
     def test_len_dict_boards(self):
         client = TrelloClient(key, token)
         actual_result = len(my_get_boards(key, token))
         excepted_result = len(client.list_boards())
         self.assertEqual(excepted_result, actual_result)
+
 
     def test_dict_of_boards_ids(self):
         actual_result = my_get_boards(key, token)
@@ -233,6 +251,7 @@ class Test(unittest.TestCase):
             }
         self.assertEqual(excepted_result.keys(), actual_result.keys())
 
+
     def test_dict_of_lists_ids(self):
         actual_result = my_get_lists('5eac513a8210603f2e657a9c', key, token)
         excepted_result = {
@@ -243,6 +262,7 @@ class Test(unittest.TestCase):
             }
         self.assertEqual(excepted_result, actual_result)
 
+
     def test_dict_of_cards_ids(self):
         actual_result = my_get_cards('5ead67a15746b524fcfe50e4', key, token)
         excepted_result = {
@@ -250,22 +270,28 @@ class Test(unittest.TestCase):
             }
         self.assertEqual(excepted_result, actual_result)
 
+
     def test_create_board(self):
         self.assertTrue('Testboard' in my_get_boards(key, token).keys())
+
 
     def test_add_list_to_board(self):
         self.assertTrue('Testlist' in my_get_lists(my_get_boards(key, token)['Testboard'], key, token).keys())
 
+
     def test_add_card_to_list(self):
         self.assertTrue('Testcard' in my_get_cards(my_get_lists(my_get_boards(key, token)['Testboard'], key, token)['Testlist'], key, token).keys())
+
 
     def test_add_label_to_card(self):
         board_id = my_get_boards(key, token)['Testboard']
         self.assertTrue('green' in my_get_label(key,token, my_get_cards(my_get_lists(board_id, key, token)['Testlist'], key, token)['Testcard']).keys())
 
+
     def test_is_legend_absent(self):
         is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
         self.assertTrue('Legend' in my_get_lists(my_get_boards(key, token)['Testboard'], key, token))
+
 
     def test_legend_content(self):
         is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
@@ -274,30 +300,38 @@ class Test(unittest.TestCase):
         excepted_result = my_get_members(key, token, my_get_boards(key, token)['Testboard']).keys()
         self.assertEqual(excepted_result, actual_result)
 
+
     def test_unique_legend_labels(self):
         is_legend_absent(my_get_boards(key, token)['Testboard'], key, token)
+
         try:
             unique_legend_labels(key, token, my_get_boards(key, token)['Testboard'])
         except:
             pass
+
         card_ids = my_get_cards(my_get_lists(my_get_boards(key, token)['Testboard'], key, token)['Legend'], key, token)
         actual_result = []
+
         for id in card_ids.keys():
             id = card_ids[id]
             url = f'https://trello.com/1/cards/{id}/labels'
             response = connection(url, key, token)
             actual_result.append(response.json()[0]['name'])
+
         excepted_result = list(my_get_members(key, token, my_get_boards(key, token)['Testboard']).keys())
         self.assertEqual(excepted_result, actual_result)
 
     def test_labels_according_to_legend(self):
+
         board_id = my_get_boards(key, token)['Testboard']
         is_legend_absent(board_id, key, token)
+
         unique_legend_labels(key, token, my_get_boards(key, token)['Testboard'])
         lists = my_get_lists(board_id, key, token)
         labels_according_to_legend(key, token, board_id)
         legend_card = my_get_cards(lists['Legend'], key, token)
         cards = my_get_cards(lists['Testlist'], key, token)
+
         self.assertTrue(my_get_label(key,token, legend_card['ivan_valeev'])['green'] in my_get_label(key,token, cards['Testcard']).values())
 
 unittest.main(verbosity=2)
